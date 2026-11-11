@@ -2,8 +2,9 @@
 name: Dengjen
 options:
   bundleIdPrefix: io.github.zirekhq
+  # The prebuilt ONNX Runtime inside libdengjen targets macOS 13.4.
   deploymentTarget:
-    macOS: "13.0"
+    macOS: "13.4"
   createIntermediateGroups: true
 packages:
   DengjenCore:

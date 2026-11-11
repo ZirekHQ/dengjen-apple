@@ -38,7 +38,7 @@ case "$source_kind" in
     fi
     (cd "$src" && rustup target add aarch64-apple-darwin >/dev/null)
     (cd "$src" && APPLE_TARGETS=aarch64-apple-darwin APPLE_FEATURES=coreml,voices \
-      APPLE_OUT_DIR="$work/apple" CARGO_TARGET_DIR="${LIBDENGJEN_TARGET_DIR:-$work/target}" \
+      MACOSX_DEPLOYMENT_TARGET=13.4 APPLE_OUT_DIR="$work/apple" CARGO_TARGET_DIR="${LIBDENGJEN_TARGET_DIR:-$work/target}" \
       bindings/apple/scripts/build-xcframework.sh release)
     ditto "$work/apple/$name" "$out/$name"
     ;;

@@ -2,7 +2,7 @@
 
 Dengjen as a system voice on macOS: VoiceOver, Spoken Content and any app that uses the system speech synthesizer can speak Kurmanji with a Dengjen voice.
 
-It is a Swift host app with an `AVSpeechSynthesisProviderAudioUnit` extension (macOS 13 or later, Apple silicon) over `Libdengjen.xcframework` from [ZirekHQ/dengjen](https://github.com/ZirekHQ/dengjen). The macOS build ships as a signed, notarized DMG outside the Mac App Store, so it stays GPL-3.0. iOS waits on [#3](https://github.com/ZirekHQ/dengjen-apple/issues/3).
+It is a Swift host app with an `AVSpeechSynthesisProviderAudioUnit` extension (macOS 13.4 or later, Apple silicon) over `Libdengjen.xcframework` from [ZirekHQ/dengjen](https://github.com/ZirekHQ/dengjen). The macOS build ships as a signed, notarized DMG outside the Mac App Store, so it stays GPL-3.0. iOS waits on [#3](https://github.com/ZirekHQ/dengjen-apple/issues/3).
 
 ## Use
 
