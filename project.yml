@@ -1,0 +1,100 @@
+# XcodeGen spec: `xcodegen generate` writes Dengjen.xcodeproj, which is not committed.
+name: Dengjen
+options:
+  bundleIdPrefix: io.github.zirekhq
+  # The prebuilt ONNX Runtime inside libdengjen targets macOS 13.4.
+  deploymentTarget:
+    macOS: "13.4"
+  createIntermediateGroups: true
+packages:
+  DengjenCore:
+    path: Packages/DengjenCore
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # The prebuilt ONNX Runtime in libdengjen has no Intel Mac slice.
+    ARCHS: arm64
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Automatic
+    DEAD_CODE_STRIPPING: YES
+    APP_GROUP: $(TeamIdentifierPrefix)io.github.zirekhq.dengjen
+targets:
+  Dengjen:
+    type: application
+    platform: macOS
+    sources:
+      - App
+    dependencies:
+      - target: DengjenSpeech
+      - package: DengjenCore
+      - framework: Frameworks/Libdengjen.xcframework
+        embed: false
+      - sdk: CoreML.framework
+      - sdk: Accelerate.framework
+      - sdk: libc++.tbd
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Dengjen
+        LSApplicationCategoryType: public.app-category.utilities
+        NSHumanReadableCopyright: Zirek. GPL-3.0-or-later.
+        DengjenAppGroup: $(APP_GROUP)
+    entitlements:
+      path: App/Dengjen.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.application-groups:
+          - $(APP_GROUP)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.zirekhq.dengjen
+  DengjenSpeech:
+    type: app-extension
+    platform: macOS
+    sources:
+      - Extension
+    dependencies:
+      - package: DengjenCore
+      - framework: Frameworks/Libdengjen.xcframework
+        embed: false
+      - sdk: AVFoundation.framework
+      - sdk: CoreML.framework
+      - sdk: Accelerate.framework
+      - sdk: libc++.tbd
+    info:
+      path: Extension/Info.plist
+      properties:
+        CFBundleDisplayName: Dengjen Speech
+        DengjenAppGroup: $(APP_GROUP)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.AudioUnit-Speech
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).AudioUnitFactory
+          NSExtensionAttributes:
+            AudioComponents:
+              - name: "Zirek: Dengjen"
+                description: Dengjen Kurmanji speech synthesis
+                manufacturer: Zirk
+                type: ausp
+                subtype: dgjn
+                version: 1
+                sandboxSafe: true
+                tags:
+                  - Speech Synthesis
+    entitlements:
+      path: Extension/DengjenSpeech.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups:
+          - $(APP_GROUP)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.zirekhq.dengjen.speech
+schemes:
+  Dengjen:
+    build:
+      targets:
+        Dengjen: all
+        DengjenSpeech: all

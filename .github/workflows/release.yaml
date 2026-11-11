@@ -1,0 +1,95 @@
+name: Release
+
+# Builds, signs with a Developer ID, notarizes and publishes Dengjen.dmg when a vX.Y.Z tag is pushed.
+# Needs these repository secrets:
+#   APPLE_TEAM_ID                  the 10-character team ID
+#   APPLE_DEVELOPER_ID_P12         base64 of the "Developer ID Application" certificate and key (.p12)
+#   APPLE_DEVELOPER_ID_P12_PASSWORD
+#   APPLE_NOTARY_KEY_P8            base64 of an App Store Connect API key (.p8) allowed to notarize
+#   APPLE_NOTARY_KEY_ID
+#   APPLE_NOTARY_ISSUER_ID
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dmg:
+    runs-on: macos-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      P12: ${{ secrets.APPLE_DEVELOPER_ID_P12 }}
+      P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+      NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+      NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+      NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+    steps:
+      - name: Check the signing secrets are set
+        run: |
+          set -euo pipefail
+          for name in APPLE_TEAM_ID P12 P12_PASSWORD NOTARY_KEY NOTARY_KEY_ID NOTARY_ISSUER_ID; do
+            [ -n "${!name}" ] || { echo "::error::secret for $name is not set; see the comment at the top of release.yaml" >&2; exit 1; }
+          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install build tools
+        run: brew install xcodegen llvm protobuf
+      - name: Fetch libdengjen
+        run: scripts/fetch-libdengjen.sh
+      - name: Import the Developer ID certificate
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(uuidgen)"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          printf '%s' "$P12" | base64 --decode > "$RUNNER_TEMP/developer-id.p12"
+          security import "$RUNNER_TEMP/developer-id.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/developer-id.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+      - name: Build and sign
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          version="${GITHUB_REF_NAME#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || version=0.0.0
+          xcodebuild -project Dengjen.xcodeproj -scheme Dengjen -configuration Release \
+            -destination 'platform=macOS,arch=arm64' -derivedDataPath build \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Developer ID Application" OTHER_CODE_SIGN_FLAGS=--timestamp \
+            MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" build
+          codesign --verify --deep --strict --verbose=2 build/Build/Products/Release/Dengjen.app
+      - name: Package, notarize and staple the DMG
+        run: |
+          set -euo pipefail
+          printf '%s' "$NOTARY_KEY" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          mkdir -p out
+          mkdir -p "$RUNNER_TEMP/dmg"
+          ditto build/Build/Products/Release/Dengjen.app "$RUNNER_TEMP/dmg/Dengjen.app"
+          ln -s /Applications "$RUNNER_TEMP/dmg/Applications"
+          hdiutil create -volname Dengjen -srcfolder "$RUNNER_TEMP/dmg" -ov -format UDZO out/Dengjen.dmg
+          codesign --sign "Developer ID Application" --timestamp out/Dengjen.dmg
+          xcrun notarytool submit out/Dengjen.dmg --key "$RUNNER_TEMP/notary.p8" \
+            --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID" --wait
+          xcrun stapler staple out/Dengjen.dmg
+          rm "$RUNNER_TEMP/notary.p8"
+          (cd out && shasum -a 256 Dengjen.dmg > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dengjen-dmg
+          path: out/*
+          if-no-files-found: error
+      - name: Publish the GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" out/Dengjen.dmg out/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
