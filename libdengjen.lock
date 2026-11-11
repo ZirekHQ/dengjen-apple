@@ -4,8 +4,9 @@
 #                 and checks it against sha256.
 # source=git      builds only the macOS slice from ZirekHQ/dengjen at ref (a full commit SHA),
 #                 without eSpeak-ng. Used until a release ships the LibdengjenVoices module
-#                 (ZirekHQ/dengjen#582); switch to source=release then.
+#                 (added by ZirekHQ/dengjen#582, so the first release after v3.1.0); switch to
+#                 source=release then.
 source=git
-ref=b78a5c2320c3e591d3baee3c9ced567a0a1ff667
+ref=ae6027adcd0be4cafa0ce741e1629bc2b30ea079
 version=
 sha256=
