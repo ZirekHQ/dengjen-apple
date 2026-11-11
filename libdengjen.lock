@@ -1,0 +1,11 @@
+# The libdengjen build the app links; scripts/fetch-libdengjen.sh reads this file.
+#
+# source=release  downloads dengjen-apple-<version>.xcframework.zip from the ZirekHQ/dengjen release
+#                 and checks it against sha256.
+# source=git      builds only the macOS slice from ZirekHQ/dengjen at ref (a full commit SHA),
+#                 without eSpeak-ng. Used until a release ships the LibdengjenVoices module
+#                 (ZirekHQ/dengjen#582); switch to source=release then.
+source=git
+ref=b78a5c2320c3e591d3baee3c9ced567a0a1ff667
+version=
+sha256=
