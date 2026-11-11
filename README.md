@@ -36,7 +36,7 @@ swift test --package-path Packages/DengjenCore
 
 ## Releases
 
-Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yaml`: it builds, signs with a Developer ID, notarizes, and attaches `Dengjen.dmg` to a GitHub Release. The secrets it needs are listed at the top of that file.
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yaml`: it builds, signs with a Developer ID, notarizes, and attaches `Dengjen.dmg` to a GitHub Release. [docs/release-setup.md](docs/release-setup.md) walks through the Apple account, certificate and secrets it needs, and [docs/voiceover-check.md](docs/voiceover-check.md) is the check to run before tagging.
 
 ## Contributing
 
